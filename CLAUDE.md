@@ -49,6 +49,8 @@ npm run format:check # Check formatting without fixing
 - **Styling**: Tailwind CSS v4 with shadcn/ui components
 - **Database**: SQLite (default), configurable via .env
 - **Build Tool**: Vite with SSR support
+- **AI Integration**: OpenAI PHP client for chat functionality
+- **Real-time**: Laravel Stream package for SSE streaming
 
 ### Key Architectural Patterns
 
@@ -92,5 +94,7 @@ npm run format:check # Check formatting without fixing
 - The project uses path aliases configured in tsconfig.json (e.g., `@/` maps to `resources/js/`)
 - shadcn/ui components are customized and stored locally in `resources/js/components/ui/`
 - SSR is configured but optional - use `npm run dev:ssr` for SSR development
-- OpenAI PHP client is installed but not yet integrated
+- OpenAI integration requires setting OPENAI_API_KEY in .env
+- Chat feature with streaming responses using useStream hook
+- Chat persistence for authenticated users with sidebar display
 - Tests use an in-memory SQLite database - no setup required

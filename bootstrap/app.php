@@ -21,6 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'chat/stream',
+            'chat/*/stream',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

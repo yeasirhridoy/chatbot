@@ -1,0 +1,123 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Chat;
+use App\Models\Message;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ChatStreamingTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_anonymous_user_can_stream_chat_without_saving(): void
+    {
+        $response = $this->post('/chat/stream', [
+            'messages' => [
+                ['type' => 'prompt', 'content' => 'Hello AI'],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'text/event-stream; charset=UTF-8');
+
+        // Verify no messages were saved
+        $this->assertDatabaseCount('messages', 0);
+        $this->assertDatabaseCount('chats', 0);
+    }
+
+    public function test_authenticated_user_streams_to_existing_chat(): void
+    {
+        $user = User::factory()->create();
+        $chat = Chat::factory()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user)->post("/chat/{$chat->id}/stream", [
+            'messages' => [
+                ['type' => 'prompt', 'content' => 'Hello AI'],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+
+        // Get the streaming content
+        $response->streamedContent();
+
+        // Verify messages were saved
+        $this->assertDatabaseHas('messages', [
+            'chat_id' => $chat->id,
+            'type' => 'prompt',
+            'content' => 'Hello AI',
+        ]);
+
+        // Verify AI response was saved
+        $this->assertDatabaseHas('messages', [
+            'chat_id' => $chat->id,
+            'type' => 'response',
+            'content' => 'This is a test response.',
+        ]);
+    }
+
+    public function test_empty_messages_returns_early(): void
+    {
+        $response = $this->post('/chat/stream', [
+            'messages' => [],
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseCount('messages', 0);
+    }
+
+    public function test_messages_marked_as_saved_are_not_duplicated(): void
+    {
+        $user = User::factory()->create();
+        $chat = Chat::factory()->create(['user_id' => $user->id]);
+
+        // Create existing message
+        $existingMessage = Message::factory()->create([
+            'chat_id' => $chat->id,
+            'type' => 'prompt',
+            'content' => 'Already saved',
+        ]);
+
+        $response = $this->actingAs($user)->post("/chat/{$chat->id}/stream", [
+            'messages' => [
+                ['type' => 'prompt', 'content' => 'Already saved', 'saved' => true],
+                ['type' => 'prompt', 'content' => 'New message', 'saved' => false],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+
+        // Get the streaming content
+        $response->streamedContent();
+
+        // Verify only the new message was saved (1 existing + 1 new prompt + 1 AI response)
+        $this->assertDatabaseCount('messages', 3);
+        $this->assertDatabaseHas('messages', [
+            'chat_id' => $chat->id,
+            'content' => 'New message',
+        ]);
+        $this->assertDatabaseHas('messages', [
+            'chat_id' => $chat->id,
+            'type' => 'response',
+            'content' => 'This is a test response.',
+        ]);
+    }
+
+    public function test_chat_not_created_for_anonymous_users(): void
+    {
+        $response = $this->post('/chat/stream', [
+            'messages' => [
+                ['type' => 'prompt', 'content' => 'Test message'],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+
+        // Verify no chat was created
+        $this->assertDatabaseCount('chats', 0);
+        $this->assertDatabaseCount('messages', 0);
+    }
+}

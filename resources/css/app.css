@@ -156,4 +156,11 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Ensure proper height for chat layout */
+    html,
+    body,
+    #app {
+        height: 100%;
+    }
 }
