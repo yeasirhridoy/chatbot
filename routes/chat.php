@@ -8,6 +8,7 @@ Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.strea
 Route::middleware('auth')->group(function () {
     Route::post('/chat', [ChatController::class, 'store'])->name('chat.store');
     Route::get('/chat/{chat}', [ChatController::class, 'show'])->name('chat.show');
+    Route::patch('/chat/{chat}', [ChatController::class, 'update'])->name('chat.update');
     Route::delete('/chat/{chat}', [ChatController::class, 'destroy'])->name('chat.destroy');
     Route::post('/chat/{chat}/stream', [ChatController::class, 'stream'])->name('chat.show.stream');
 });

@@ -63,6 +63,30 @@ class ChatController extends Controller
         return redirect()->route('chat.show', $chat);
     }
 
+    public function update(Request $request, Chat $chat)
+    {
+        $this->authorize('view', $chat);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        $chat->update([
+            'title' => $request->title,
+        ]);
+
+        // Return appropriate response based on request type
+        if ($request->header('X-Inertia')) {
+            // For Inertia requests, redirect back to maintain current page
+            return redirect()->back();
+        }
+
+        return response()->json([
+            'success' => true,
+            'title' => $chat->title,
+        ]);
+    }
+
     public function destroy(Chat $chat)
     {
         $this->authorize('view', $chat);

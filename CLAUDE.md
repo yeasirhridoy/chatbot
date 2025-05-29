@@ -98,3 +98,6 @@ npm run format:check # Check formatting without fixing
 - Chat feature with streaming responses using useStream hook
 - Chat persistence for authenticated users with sidebar display
 - Tests use an in-memory SQLite database - no setup required
+
+### Development Notes
+- Always use the updated Inertia 2.0 useForm implementation

@@ -103,15 +103,11 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
             setMessages(newMessages);
             send({ messages: newMessages });
         } else if (!chat) {
-            router.post(
-                '/chat',
-                {
-                    firstMessage: query,
-                },
-                {
-                    preserveState: false,
-                },
-            );
+            router.post('/chat', {
+                firstMessage: query,
+            }, {
+                preserveState: false,
+            });
         } else {
             const newMessages = [...messages, newMessage];
             setMessages(newMessages);
