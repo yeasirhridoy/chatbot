@@ -258,7 +258,7 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
                                                 "absolute right-16 top-0 bottom-0 w-8 bg-gradient-to-l to-transparent pointer-events-none transition-colors",
                                                 currentChatId === chat.id 
                                                     ? "from-accent" 
-                                                    : "from-background group-hover/chat:from-accent"
+                                                    : "from-sidebar group-hover/chat:from-accent"
                                             )} />
                                         </Link>
                                         
