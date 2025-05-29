@@ -3,7 +3,6 @@
 use App\Http\Controllers\ChatController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
 Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.stream');
 
 Route::middleware('auth')->group(function () {

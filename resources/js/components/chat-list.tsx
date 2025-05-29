@@ -97,10 +97,23 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
         event?.stopPropagation();
         
         router.delete(`/chat/${chatId}`, {
-            onSuccess: () => {
-                // Force refresh the chat list
+            onBefore: () => {
+                // Optimistically remove from local state
+                setChats(prevChats => prevChats.filter(chat => chat.id !== chatId));
+                // Clear cache to force fresh fetch next time
+                chatCache = chatCache.filter(chat => chat.id !== chatId);
+            },
+            onError: () => {
+                // If error, refresh to get correct state
                 fetchChats(true);
-            }
+            },
+            onFinish: () => {
+                // Refresh chat list to ensure consistency
+                setTimeout(() => {
+                    fetchChats(true);
+                }, 100);
+            },
+            preserveScroll: true
         });
     };
 
@@ -130,11 +143,11 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
                         <p className="text-muted-foreground py-2 text-sm">No chats yet</p>
                     ) : (
                         chats.map((chat) => (
-                            <div key={chat.id} className="group relative">
+                            <div key={chat.id} className="group/chat relative">
                                 <Link
                                     href={`/chat/${chat.id}`}
                                     className={cn(
-                                        'hover:bg-accent flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors',
+                                        'hover:bg-accent flex items-center gap-2 rounded-lg px-2 py-1.5 pr-8 text-sm transition-colors',
                                         currentChatId === chat.id && 'bg-accent',
                                     )}
                                     preserveState={false}
@@ -143,39 +156,37 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
                                     <span className="truncate flex-1">{chat.title}</span>
                                 </Link>
                                 
-                                {/* Delete button - only visible on hover */}
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                            }}
-                                        >
-                                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Chat</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Are you sure you want to delete "{chat.title}"? This action cannot be undone and will permanently delete the chat and all its messages.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={() => handleDeleteChat(chat.id)}
-                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                {/* Delete button - only visible on hover of this specific chat */}
+                                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 opacity-0 transition-all duration-200 group-hover/chat:opacity-100 hover:bg-destructive/10"
                                             >
-                                                Delete
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                                <Trash2 className="h-3 w-3 text-muted-foreground transition-colors hover:text-destructive" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Chat</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Are you sure you want to delete "{chat.title}"? This action cannot be undone and will permanently delete the chat and all its messages.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={() => handleDeleteChat(chat.id)}
+                                                    className="bg-destructive text-white hover:bg-destructive/90 focus:ring-destructive"
+                                                >
+                                                    Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
                             </div>
                         ))
                     )}

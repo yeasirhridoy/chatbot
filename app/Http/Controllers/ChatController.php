@@ -67,9 +67,20 @@ class ChatController extends Controller
     {
         $this->authorize('view', $chat);
 
+        $chatId = $chat->id;
         $chat->delete();
 
-        return redirect()->route('chat.index');
+        // Check if this is the current chat being viewed
+        $currentUrl = request()->header('Referer') ?? '';
+        $isCurrentChat = str_contains($currentUrl, "/chat/{$chatId}");
+
+        if ($isCurrentChat) {
+            // If deleting the current chat, redirect to home
+            return redirect()->route('home');
+        } else {
+            // If deleting from sidebar, redirect back to current page
+            return redirect()->back();
+        }
     }
 
     public function stream(Request $request, ?Chat $chat = null)
