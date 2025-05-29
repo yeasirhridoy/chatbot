@@ -36,14 +36,14 @@ type PageProps = {
     };
 };
 
-function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; auth: any; flash: any }) {
+function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; auth: PageProps['auth']; flash: PageProps['flash'] }) {
     const [messages, setMessages] = useState<Message[]>(chat?.messages || []);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentChatId = chat?.id || null;
     const streamUrl = currentChatId ? `/chat/${currentChatId}/stream` : '/chat/stream';
 
-    const { data, send, cancel, isStreaming, isFetching, id } = useStream(streamUrl);
+    const { data, send, isStreaming, isFetching, id } = useStream(streamUrl);
 
     // Auto-focus input and handle auto-streaming on mount
     useEffect(() => {
@@ -58,7 +58,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                 send({ messages: chat.messages });
             }, 100);
         }
-    }, []); // Only run on mount
+    }, [chat?.messages, flash?.stream, send]); // Only run on mount
 
     // Handle streaming response
     useEffect(() => {

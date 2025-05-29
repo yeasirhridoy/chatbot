@@ -1,7 +1,7 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { type BreadcrumbItem as BreadcrumbItemType, type User } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface AppSidebarHeaderProps {
 }
 
 export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
-    const { auth } = usePage<{ auth: { user?: any } }>().props;
+    const { auth } = usePage<{ auth: { user?: User } }>().props;
     const { post, processing } = useForm();
 
     const handleNewChat = () => {

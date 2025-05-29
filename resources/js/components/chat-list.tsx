@@ -69,7 +69,7 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
             chatCache = data;
             lastFetchTime = now;
             setChats(data);
-        } catch (error) {
+        } catch {
             // Silently handle fetch errors
         } finally {
             setLoading(false);
@@ -208,9 +208,9 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
                     state === 'collapsed' && "flex flex-col items-center"
                 )}>
                     {loading && chats.length === 0 ? (
-                        <p className="text-muted-foreground py-2 text-sm">Loading...</p>
+                        state === 'expanded' && <p className="text-muted-foreground py-2 text-sm">Loading...</p>
                     ) : chats.length === 0 ? (
-                        <p className="text-muted-foreground py-2 text-sm">No chats yet</p>
+                        state === 'expanded' && <p className="text-muted-foreground py-2 text-sm">No chats yet</p>
                     ) : (
                         chats.map((chat) => {
                             // When collapsed, show only icon
