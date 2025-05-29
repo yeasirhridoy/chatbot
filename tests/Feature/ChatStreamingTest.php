@@ -140,7 +140,7 @@ class ChatStreamingTest extends TestCase
         $this->assertDatabaseCount('chats', 0);
         $this->assertDatabaseCount('messages', 0);
 
-        // Verify response was still generated (SSE format)
-        $this->assertStringContainsString('data: This is a test response.', $content);
+        // Verify response was still generated
+        $this->assertEquals('This is a test response.', $content);
     }
 }
