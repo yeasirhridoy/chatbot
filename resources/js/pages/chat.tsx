@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useStream } from '@laravel/stream-react';
 import { Info } from 'lucide-react';
 import { FormEvent, useEffect, useRef, useState } from 'react';
@@ -118,11 +118,13 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     };
 
     return (
-        <AppLayout
-            currentChatId={chat?.id}
-            className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
-        >
-            {!auth.user && (
+        <>
+            <Head title={chat?.title || 'Chat'} />
+            <AppLayout
+                currentChatId={chat?.id}
+                className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
+            >
+                {!auth.user && (
                 <div className="bg-background flex-shrink-0 border-b p-4">
                     <Alert className="mx-auto max-w-3xl">
                         <Info className="h-4 w-4" />
@@ -157,6 +159,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                 </div>
             </div>
         </AppLayout>
+        </>
     );
 }
 
