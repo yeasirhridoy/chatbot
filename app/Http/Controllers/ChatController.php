@@ -104,7 +104,7 @@ class ChatController extends Controller
             $this->authorize('view', $chat);
         }
 
-        return response()->eventStream(function () use ($request, $chat) {
+        return response()->stream(function () use ($request, $chat) {
             $messages = $request->input('messages', []);
 
             if (empty($messages)) {
@@ -138,7 +138,9 @@ class ChatController extends Controller
             if (app()->environment('testing') || ! config('openai.api_key')) {
                 // Mock response for testing or when API key is not set
                 $fullResponse = 'This is a test response.';
-                yield $fullResponse;
+                echo $fullResponse;
+                ob_flush();
+                flush();
             } else {
                 try {
                     $stream = OpenAI::chat()->createStreamed([
@@ -150,12 +152,16 @@ class ChatController extends Controller
                         $chunk = $response->choices[0]->delta->content;
                         if ($chunk !== null) {
                             $fullResponse .= $chunk;
-                            yield $chunk;
+                            echo $chunk;
+                            ob_flush();
+                            flush();
                         }
                     }
                 } catch (\Exception $e) {
                     $fullResponse = 'Error: Unable to generate response.';
-                    yield $fullResponse;
+                    echo $fullResponse;
+                    ob_flush();
+                    flush();
                 }
             }
 
@@ -166,7 +172,11 @@ class ChatController extends Controller
                     'content' => $fullResponse,
                 ]);
             }
-        });
+        }, 200, [
+            'Cache-Control' => 'no-cache',
+            'Content-Type' => 'text/event-stream',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     private function generateChatTitle(array $messages): string

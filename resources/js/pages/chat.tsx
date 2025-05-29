@@ -3,8 +3,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, usePage } from '@inertiajs/react';
-import { useEventStream } from '@laravel/stream-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { useStream } from '@laravel/stream-react';
 import { Info } from 'lucide-react';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
@@ -43,7 +43,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     const currentChatId = chat?.id || null;
     const streamUrl = currentChatId ? `/chat/${currentChatId}/stream` : '/chat/stream';
 
-    const { message: data, send, isStreaming, isFetching, id } = useEventStream(streamUrl);
+    const { data, send, isStreaming, isFetching } = useStream(streamUrl);
 
     // Auto-focus input and handle auto-streaming on mount
     useEffect(() => {
@@ -142,7 +142,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                     </div>
                 )}
 
-                <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={id} />
+                <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={undefined} />
 
                 <div className="bg-background flex-shrink-0 border-t">
                     <div className="mx-auto max-w-3xl p-4">
