@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { useStream } from '@laravel/stream-react';
+import { useEventStream } from '@laravel/stream-react';
 import { Info } from 'lucide-react';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
@@ -43,7 +43,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     const currentChatId = chat?.id || null;
     const streamUrl = currentChatId ? `/chat/${currentChatId}/stream` : '/chat/stream';
 
-    const { data, send, isStreaming, isFetching, id } = useStream(streamUrl);
+    const { message: data, send, isStreaming, isFetching, id } = useEventStream(streamUrl);
 
     // Auto-focus input and handle auto-streaming on mount
     useEffect(() => {
