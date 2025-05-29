@@ -12,7 +12,6 @@ type Message = {
     id?: number;
     type: 'response' | 'error' | 'prompt';
     content: string;
-    saved?: boolean;
 };
 
 type ChatType = {
@@ -24,69 +23,62 @@ type ChatType = {
 };
 
 type PageProps = {
-    auth: any;
+    auth: {
+        user?: {
+            id: number;
+            name: string;
+            email: string;
+        };
+    };
     chat?: ChatType;
-    chats: ChatType[];
+    flash?: {
+        stream?: boolean;
+    };
 };
 
-export default function Chat() {
-    const { auth, chat, chats } = usePage<PageProps>().props;
+function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; auth: any; flash: any }) {
     const [messages, setMessages] = useState<Message[]>(chat?.messages || []);
-    const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const streamUrl = chat ? `/chat/${chat.id}/stream` : '/chat/stream';
+    const currentChatId = chat?.id || null;
+    const streamUrl = currentChatId ? `/chat/${currentChatId}/stream` : '/chat/stream';
+
     const { data, send, cancel, isStreaming, isFetching, id } = useStream(streamUrl);
 
-    // Combine saved messages with session messages
-    const allMessages = [...messages, ...sessionMessages];
-
+    // Auto-focus input and handle auto-streaming on mount
     useEffect(() => {
-        // Reset messages when chat changes
-        setMessages(chat?.messages || []);
-        setSessionMessages([]);
-        // Clear any streaming data when switching chats
-        if (data) {
-            cancel();
+        inputRef.current?.focus();
+        
+        // Auto-stream if we have a chat with exactly 1 message (newly created chat)
+        // OR if flash.stream is true (fallback)
+        const shouldAutoStream = (chat?.messages?.length === 1) || (flash?.stream && chat?.messages && chat.messages.length > 0);
+        
+        if (shouldAutoStream) {
+            setTimeout(() => {
+                send({ messages: chat.messages });
+            }, 100);
         }
-        // Focus input when chat changes
-        inputRef.current?.focus();
-    }, [chat?.id]);
+    }, []); // Only run on mount
 
-    // Focus input on mount
+    // Handle streaming response
     useEffect(() => {
-        inputRef.current?.focus();
-    }, []);
+        if (!isStreaming && data && data.trim()) {
+            setMessages((currentMessages) => {
+                const hasResponse = currentMessages.some((m) => m.content === data);
+                if (hasResponse) {
+                    return currentMessages;
+                }
 
-    // When streaming completes, add the response to messages and focus input
-    useEffect(() => {
-        if (!isStreaming && data && sessionMessages.length > 0) {
-            const lastMessage = sessionMessages[sessionMessages.length - 1];
-            if (lastMessage.type === 'prompt' && !sessionMessages.some((m) => m.type === 'response' && m.content === data)) {
-                setSessionMessages((prev) => [
-                    ...prev,
+                return [
+                    ...currentMessages,
                     {
                         type: 'response',
                         content: data,
                     },
-                ]);
-                // Focus input after response is added
-                setTimeout(() => inputRef.current?.focus(), 100);
-            }
+                ];
+            });
         }
-    }, [isStreaming]);
-
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                cancel();
-            }
-        };
-
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
-    }, [cancel]);
-
+    }, [isStreaming, data]);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -96,50 +88,46 @@ export default function Chat() {
 
         if (!query) return;
 
-        const toAdd: Message[] = [];
-
-        // Don't add previous response when sending new message
-
-        // Add new prompt
-        toAdd.push({
+        const newMessage: Message = {
             type: 'prompt',
             content: query,
-        });
+        };
 
-        // For anonymous users or new chats, use session messages
-        if (!chat) {
-            const newSessionMessages = [...sessionMessages, ...toAdd];
-            setSessionMessages(newSessionMessages);
-            send({ messages: newSessionMessages });
+        if (!auth.user) {
+            const newMessages = [...messages, newMessage];
+            setMessages(newMessages);
+            send({ messages: newMessages });
+        } else if (!chat) {
+            router.post(
+                '/chat',
+                {
+                    firstMessage: query,
+                },
+                {
+                    preserveState: false,
+                },
+            );
         } else {
-            // For saved chats, combine all messages
-            const allCurrentMessages = [...messages, ...sessionMessages, ...toAdd];
-            setSessionMessages([...sessionMessages, ...toAdd]);
-            send({ messages: allCurrentMessages });
+            const newMessages = [...messages, newMessage];
+            setMessages(newMessages);
+            send({ messages: newMessages });
         }
+
         input.value = '';
     };
 
-    const startNewChat = () => {
-        if (!auth.user) {
-            // If not authenticated, redirect to login
-            router.visit('/login');
-        } else {
-            // If authenticated, create a new chat
-            router.post('/chat', {});
-        }
-    };
-
     return (
-        <AppLayout chats={chats} currentChatId={chat?.id} onNewChat={startNewChat} className="flex h-[calc(100vh-theme(spacing.4))] md:h-[calc(100vh-theme(spacing.8))] flex-col overflow-hidden">
-            {/* Sticky Header */}
-            {!auth.user && !chat && (
+        <AppLayout
+            currentChatId={chat?.id}
+            className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
+        >
+            {!auth.user && (
                 <div className="bg-background flex-shrink-0 border-b p-4">
                     <Alert className="mx-auto max-w-3xl">
                         <Info className="h-4 w-4" />
                         <AlertDescription>
                             You're chatting anonymously. Your conversation won't be saved.
-                            <Button variant="link" className="h-auto p-0 text-sm" onClick={startNewChat}>
+                            <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.visit('/login')}>
                                 Sign in to save your chats
                             </Button>
                         </AlertDescription>
@@ -147,10 +135,8 @@ export default function Chat() {
                 </div>
             )}
 
-            {/* Scrollable Conversation Area */}
-            <Conversation messages={allMessages} streamingData={data} isStreaming={isStreaming} streamId={id} />
+            <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={id} />
 
-            {/* Sticky Input Footer */}
             <div className="bg-background flex-shrink-0 border-t">
                 <div className="mx-auto max-w-3xl p-4">
                     <form onSubmit={handleSubmit}>
@@ -171,4 +157,14 @@ export default function Chat() {
             </div>
         </AppLayout>
     );
+}
+
+export default function Chat() {
+    const { auth, chat, flash } = usePage<PageProps>().props;
+
+    // Use the chat ID as a key to force complete re-creation of the ChatWithStream component
+    // This ensures useStream is completely reinitialized with the correct URL
+    const key = chat?.id ? `chat-${chat.id}` : 'no-chat';
+
+    return <ChatWithStream key={key} chat={chat} auth={auth} flash={flash} />;
 }

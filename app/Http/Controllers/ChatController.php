@@ -15,12 +15,8 @@ class ChatController extends Controller
 
     public function index()
     {
-        $chats = Auth::check()
-            ? Auth::user()->chats()->with('messages')->latest()->get()
-            : [];
-
         return Inertia::render('chat', [
-            'chats' => $chats,
+            'chat' => null,
         ]);
     }
 
@@ -28,9 +24,10 @@ class ChatController extends Controller
     {
         $this->authorize('view', $chat);
 
+        $chat->load('messages');
+
         return Inertia::render('chat', [
-            'chat' => $chat->load('messages'),
-            'chats' => Auth::user()->chats()->latest()->get(),
+            'chat' => $chat,
         ]);
     }
 
@@ -38,13 +35,41 @@ class ChatController extends Controller
     {
         $request->validate([
             'title' => 'nullable|string|max:255',
+            'firstMessage' => 'nullable|string',
         ]);
+
+        $title = $request->title;
+        
+        // If no title but firstMessage provided, use first 50 chars as title
+        if (!$title && $request->firstMessage) {
+            $title = substr($request->firstMessage, 0, 50) . (strlen($request->firstMessage) > 50 ? '...' : '');
+        }
 
         $chat = Auth::user()->chats()->create([
-            'title' => $request->title,
+            'title' => $title,
         ]);
 
+        // If firstMessage provided, save it and trigger streaming via URL parameter
+        if ($request->firstMessage) {
+            // Save the first message
+            $chat->messages()->create([
+                'type' => 'prompt',
+                'content' => $request->firstMessage,
+            ]);
+            
+            return redirect()->route('chat.show', $chat)->with('stream', true);
+        }
+
         return redirect()->route('chat.show', $chat);
+    }
+
+    public function destroy(Chat $chat)
+    {
+        $this->authorize('view', $chat);
+
+        $chat->delete();
+
+        return redirect()->route('chat.index');
     }
 
     public function stream(Request $request, ?Chat $chat = null)
@@ -63,7 +88,8 @@ class ChatController extends Controller
             // Only save messages if we have an existing chat (authenticated user with saved chat)
             if ($chat) {
                 foreach ($messages as $message) {
-                    if (! isset($message['saved']) || ! $message['saved']) {
+                    // Only save if message doesn't have an ID (not from database)
+                    if (!isset($message['id'])) {
                         $chat->messages()->create([
                             'type' => $message['type'],
                             'content' => $message['content'],

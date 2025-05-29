@@ -42,7 +42,7 @@ class ChatAuthenticationFlowTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('chat')
-            ->has('chats', 0) // No chats for anonymous users
+            ->where('chat', null)
         );
     }
 

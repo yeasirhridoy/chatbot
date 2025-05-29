@@ -21,6 +21,13 @@ class Message extends Model
         'type' => 'string',
     ];
 
+    protected $appends = ['saved'];
+
+    public function getSavedAttribute()
+    {
+        return true;
+    }
+
     public function chat(): BelongsTo
     {
         return $this->belongsTo(Chat::class);

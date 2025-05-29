@@ -7,25 +7,21 @@ import { type PropsWithChildren } from 'react';
 
 interface AppSidebarLayoutProps {
     breadcrumbs?: BreadcrumbItem[];
-    chats?: any[];
     currentChatId?: number;
-    onNewChat?: () => void;
     className?: string;
 }
 
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
-    chats,
     currentChatId,
-    onNewChat,
     className,
 }: PropsWithChildren<AppSidebarLayoutProps>) {
     return (
         <AppShell variant="sidebar">
-            <AppSidebar chats={chats} currentChatId={currentChatId} onNewChat={onNewChat} />
+            <AppSidebar currentChatId={currentChatId} />
             <AppContent variant="sidebar" className={className}>
-                <AppSidebarHeader breadcrumbs={breadcrumbs} onNewChat={onNewChat} />
+                <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {children}
             </AppContent>
         </AppShell>

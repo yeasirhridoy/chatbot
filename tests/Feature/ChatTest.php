@@ -19,25 +19,25 @@ class ChatTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn (Assert $page) => $page
             ->component('chat')
-            ->has('chats', 0)
-            ->missing('chat')
+            ->where('chat', null)
         );
     }
 
-    public function test_authenticated_user_sees_their_chats_in_sidebar(): void
+    public function test_authenticated_user_can_fetch_chats_via_api(): void
     {
         $user = User::factory()->create();
         $chat = Chat::factory()->create(['user_id' => $user->id, 'title' => 'Test Chat']);
 
-        $response = $this->actingAs($user)->get('/');
+        $response = $this->actingAs($user)->get('/api/chats');
 
         $response->assertStatus(200);
-        $response->assertInertia(fn (Assert $page) => $page
-            ->component('chat')
-            ->has('chats', 1)
-            ->where('chats.0.id', $chat->id)
-            ->where('chats.0.title', 'Test Chat')
-        );
+        $response->assertJsonCount(1);
+        $response->assertJson([
+            [
+                'id' => $chat->id,
+                'title' => 'Test Chat',
+            ]
+        ]);
     }
 
     public function test_user_can_view_specific_chat(): void

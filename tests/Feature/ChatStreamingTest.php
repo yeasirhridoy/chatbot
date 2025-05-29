@@ -83,8 +83,8 @@ class ChatStreamingTest extends TestCase
 
         $response = $this->actingAs($user)->post("/chat/{$chat->id}/stream", [
             'messages' => [
-                ['type' => 'prompt', 'content' => 'Already saved', 'saved' => true],
-                ['type' => 'prompt', 'content' => 'New message', 'saved' => false],
+                ['id' => $existingMessage->id, 'type' => 'prompt', 'content' => 'Already saved'],
+                ['type' => 'prompt', 'content' => 'New message'],
             ],
         ]);
 
@@ -119,5 +119,28 @@ class ChatStreamingTest extends TestCase
         // Verify no chat was created
         $this->assertDatabaseCount('chats', 0);
         $this->assertDatabaseCount('messages', 0);
+    }
+
+    public function test_authenticated_user_without_chat_does_not_save_messages(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/chat/stream', [
+            'messages' => [
+                ['type' => 'prompt', 'content' => 'Hello, this is my first message'],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+
+        // Get the streaming content to ensure all processing completes
+        $content = $response->streamedContent();
+
+        // Verify no chat was created (since we're back to explicit chat creation)
+        $this->assertDatabaseCount('chats', 0);
+        $this->assertDatabaseCount('messages', 0);
+
+        // Verify response was still generated
+        $this->assertEquals('This is a test response.', $content);
     }
 }

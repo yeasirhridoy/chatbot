@@ -13,7 +13,7 @@ interface ConversationProps {
     messages: Message[];
     streamingData?: string;
     isStreaming: boolean;
-    streamId?: number;
+    streamId?: string;
 }
 
 export default function Conversation({ messages, streamingData, isStreaming, streamId }: ConversationProps) {
@@ -34,21 +34,26 @@ export default function Conversation({ messages, streamingData, isStreaming, str
                         Type your message below and hit enter to send.
                     </p>
                 )}
-                {messages.map((message, index) => (
-                    <div key={message.id || index} className={cn('relative', message.type === 'prompt' && 'flex justify-end')}>
-                        <div
-                            className={cn(
-                                'inline-block max-w-[80%] rounded-lg p-3',
-                                message.type === 'prompt' ? 'bg-primary text-primary-foreground' : 'bg-muted',
-                            )}
-                        >
-                            {message.type === 'prompt' && (index === messages.length - 1 || index === messages.length - 2) && (
-                                <StreamingIndicator id={streamId} className="absolute top-3 -left-8" />
-                            )}
-                            <p className="whitespace-pre-wrap">{message.content}</p>
+                {messages.map((message, index) => {
+                    // Create a unique key that won't conflict between saved and new messages
+                    const key = message.id ? `db-${message.id}` : `local-${index}-${message.content.substring(0, 10)}`;
+                    
+                    return (
+                        <div key={key} className={cn('relative', message.type === 'prompt' && 'flex justify-end')}>
+                            <div
+                                className={cn(
+                                    'inline-block max-w-[80%] rounded-lg p-3',
+                                    message.type === 'prompt' ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                                )}
+                            >
+                                {message.type === 'prompt' && (index === messages.length - 1 || index === messages.length - 2) && streamId && (
+                                    <StreamingIndicator id={streamId} className="absolute top-3 -left-8" />
+                                )}
+                                <p className="whitespace-pre-wrap">{message.content}</p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
                 {streamingData && isStreaming && (
                     <div className="relative">
                         <div className="bg-muted inline-block max-w-[80%] rounded-lg p-3">
