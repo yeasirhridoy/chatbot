@@ -77,6 +77,11 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                     },
                 ];
             });
+            
+            // Focus the input after streaming is complete
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
         }
     }, [isStreaming, data]);
 
