@@ -16,6 +16,8 @@ import {
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
+import { useSidebar } from './ui/sidebar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 interface Chat {
     id: number;
@@ -40,6 +42,7 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
     const [editingChatId, setEditingChatId] = useState<number | null>(null);
     const lastCurrentChatId = useRef<number | undefined>(undefined);
     const editInputRef = useRef<HTMLInputElement>(null);
+    const { state } = useSidebar();
     
     const { data, setData, patch, processing } = useForm({
         title: '',
@@ -181,30 +184,65 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
     }
 
     return (
-        <div className="flex h-full flex-col">
-            <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Chats</h3>
-                <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={handleNewChat}
-                    disabled={createProcessing}
-                >
-                    <Plus className="h-4 w-4" />
-                </Button>
-            </div>
+        <TooltipProvider>
+            <div className="flex h-full flex-col">
+                <div className={cn(
+                    "mb-2 flex items-center",
+                    state === 'collapsed' ? "justify-center" : "justify-between"
+                )}>
+                    {state === 'expanded' && <h3 className="text-sm font-semibold">Chats</h3>}
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={handleNewChat}
+                        disabled={createProcessing}
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
 
-            <ScrollArea className="flex-1">
-                <div className="space-y-1">
+                <ScrollArea className="flex-1">
+                <div className={cn(
+                    "space-y-1",
+                    state === 'collapsed' && "flex flex-col items-center"
+                )}>
                     {loading && chats.length === 0 ? (
                         <p className="text-muted-foreground py-2 text-sm">Loading...</p>
                     ) : chats.length === 0 ? (
                         <p className="text-muted-foreground py-2 text-sm">No chats yet</p>
                     ) : (
-                        chats.map((chat) => (
-                            <div key={chat.id} className="group/chat relative">
-                                {editingChatId === chat.id ? (
+                        chats.map((chat) => {
+                            // When collapsed, show only icon
+                            if (state === 'collapsed') {
+                                return (
+                                    <Tooltip key={chat.id}>
+                                        <TooltipTrigger asChild>
+                                            <Link
+                                                href={`/chat/${chat.id}`}
+                                                prefetch="hover"
+                                                cacheFor="5m"
+                                                className={cn(
+                                                    'flex items-center justify-center h-6 w-6 rounded transition-colors',
+                                                    currentChatId === chat.id 
+                                                        ? 'bg-accent text-accent-foreground' 
+                                                        : 'hover:bg-accent hover:text-accent-foreground'
+                                                )}
+                                            >
+                                                <MessageSquare className="h-4 w-4" />
+                                            </Link>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                            <p>{chat.title}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            }
+
+                            // Expanded state - full chat item
+                            const chatItem = (
+                                <div key={chat.id} className="group/chat relative">
+                                    {editingChatId === chat.id ? (
                                     // Edit mode
                                     <div className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm">
                                         <MessageSquare className="h-4 w-4 flex-shrink-0" />
@@ -247,7 +285,7 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
                                             prefetch="hover"
                                             cacheFor="5m"
                                             className={cn(
-                                                'hover:bg-accent flex items-center gap-2 rounded-lg px-2 py-1.5 pr-16 text-sm transition-colors relative',
+                                                'hover:bg-accent group-hover/chat:bg-accent flex items-center gap-2 rounded-lg px-2 py-1.5 pr-16 text-sm transition-colors relative',
                                                 currentChatId === chat.id && 'bg-accent',
                                             )}
                                         >
@@ -303,11 +341,15 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
                                         </div>
                                     </>
                                 )}
-                            </div>
-                        ))
+                                </div>
+                            );
+
+                            return chatItem;
+                        })
                     )}
                 </div>
-            </ScrollArea>
-        </div>
+                </ScrollArea>
+            </div>
+        </TooltipProvider>
     );
 }
