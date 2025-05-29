@@ -36,7 +36,7 @@ class ChatTest extends TestCase
             [
                 'id' => $chat->id,
                 'title' => 'Test Chat',
-            ]
+            ],
         ]);
     }
 

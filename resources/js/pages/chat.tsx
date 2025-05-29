@@ -48,11 +48,11 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     // Auto-focus input and handle auto-streaming on mount
     useEffect(() => {
         inputRef.current?.focus();
-        
+
         // Auto-stream if we have a chat with exactly 1 message (newly created chat)
         // OR if flash.stream is true (fallback)
-        const shouldAutoStream = (chat?.messages?.length === 1) || (flash?.stream && chat?.messages && chat.messages.length > 0);
-        
+        const shouldAutoStream = chat?.messages?.length === 1 || (flash?.stream && chat?.messages && chat.messages.length > 0);
+
         if (shouldAutoStream) {
             setTimeout(() => {
                 send({ messages: chat.messages });
@@ -77,7 +77,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                     },
                 ];
             });
-            
+
             // Focus the input after streaming is complete
             setTimeout(() => {
                 inputRef.current?.focus();
@@ -103,11 +103,15 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
             setMessages(newMessages);
             send({ messages: newMessages });
         } else if (!chat) {
-            router.post('/chat', {
-                firstMessage: query,
-            }, {
-                preserveState: false,
-            });
+            router.post(
+                '/chat',
+                {
+                    firstMessage: query,
+                },
+                {
+                    preserveState: false,
+                },
+            );
         } else {
             const newMessages = [...messages, newMessage];
             setMessages(newMessages);
@@ -125,40 +129,40 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                 className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
             >
                 {!auth.user && (
-                <div className="bg-background flex-shrink-0 border-b p-4">
-                    <Alert className="mx-auto max-w-3xl">
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                            You're chatting anonymously. Your conversation won't be saved.
-                            <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.visit('/login')}>
-                                Sign in to save your chats
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
-                </div>
-            )}
+                    <div className="bg-background flex-shrink-0 border-b p-4">
+                        <Alert className="mx-auto max-w-3xl">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                You're chatting anonymously. Your conversation won't be saved.
+                                <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.visit('/login')}>
+                                    Sign in to save your chats
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                )}
 
-            <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={id} />
+                <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={id} />
 
-            <div className="bg-background flex-shrink-0 border-t">
-                <div className="mx-auto max-w-3xl p-4">
-                    <form onSubmit={handleSubmit}>
-                        <div className="flex gap-2">
-                            <Input
-                                ref={inputRef}
-                                type="text"
-                                placeholder="Type a message..."
-                                className="flex-1"
-                                disabled={isStreaming || isFetching}
-                            />
-                            <Button type="submit" disabled={isStreaming || isFetching}>
-                                Send
-                            </Button>
-                        </div>
-                    </form>
+                <div className="bg-background flex-shrink-0 border-t">
+                    <div className="mx-auto max-w-3xl p-4">
+                        <form onSubmit={handleSubmit}>
+                            <div className="flex gap-2">
+                                <Input
+                                    ref={inputRef}
+                                    type="text"
+                                    placeholder="Type a message..."
+                                    className="flex-1"
+                                    disabled={isStreaming || isFetching}
+                                />
+                                <Button type="submit" disabled={isStreaming || isFetching}>
+                                    Send
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        </AppLayout>
+            </AppLayout>
         </>
     );
 }

@@ -24,16 +24,16 @@ class ChatFlowTest extends TestCase
 
         // Should redirect to the new chat
         $response->assertRedirect();
-        
+
         // User should now have one blank chat
         $user->refresh();
         $this->assertCount(1, $user->chats);
-        
+
         $chat = $user->chats->first();
         $this->assertNotNull($chat);
         $this->assertNull($chat->title); // Blank chat has no title
         $this->assertCount(0, $chat->messages); // No messages yet
-        
+
         // Should redirect to the new chat page
         $response->assertRedirect("/chat/{$chat->id}");
     }
@@ -57,11 +57,11 @@ class ChatFlowTest extends TestCase
         // 2. POST to /chat to create a new chat
         // 3. Redirect to the new chat
         // 4. Auto-send the remembered message
-        
+
         // For testing, we'll simulate the flow
         $response = $this->post('/chat');
         $chat = $user->chats()->first();
-        
+
         // Now send the message to the new chat
         $response = $this->post("/chat/{$chat->id}/stream", [
             'messages' => [
@@ -70,17 +70,17 @@ class ChatFlowTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        
+
         // Get the streaming content to ensure all processing completes
         $response->streamedContent();
-        
+
         // Verify the message was saved
         $this->assertDatabaseHas('messages', [
             'chat_id' => $chat->id,
             'type' => 'prompt',
             'content' => 'Hello from home page',
         ]);
-        
+
         // Verify AI response was also saved
         $this->assertDatabaseHas('messages', [
             'chat_id' => $chat->id,
@@ -97,7 +97,7 @@ class ChatFlowTest extends TestCase
         // Create first chat
         $response = $this->post('/chat');
         $chat1 = $user->chats()->first();
-        
+
         // Visit the new chat page
         $response = $this->get("/chat/{$chat1->id}");
         $response->assertInertia(fn (Assert $page) => $page
@@ -109,14 +109,14 @@ class ChatFlowTest extends TestCase
         $response = $this->post('/chat');
         $user->refresh();
         $chat2 = $user->chats()->latest()->first();
-        
+
         // Visit the new chat page
         $response = $this->get("/chat/{$chat2->id}");
         $response->assertInertia(fn (Assert $page) => $page
             ->component('chat')
             ->where('chat.id', $chat2->id)
         );
-        
+
         // Verify both chats exist via API
         $response = $this->actingAs($user)->get('/api/chats');
         $response->assertJsonCount(2);

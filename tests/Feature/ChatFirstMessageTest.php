@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ChatFirstMessageTest extends TestCase
@@ -17,16 +16,16 @@ class ChatFirstMessageTest extends TestCase
         $this->actingAs($user);
 
         $response = $this->post('/chat', [
-            'firstMessage' => 'Hello, this is my first message'
+            'firstMessage' => 'Hello, this is my first message',
         ]);
 
         // Should redirect to the new chat
         $response->assertRedirect();
-        
+
         // Get the chat that was created
         $chat = $user->chats()->first();
         $this->assertNotNull($chat);
-        
+
         // Should redirect to the correct chat
         $response->assertRedirect("/chat/{$chat->id}");
     }
@@ -37,15 +36,15 @@ class ChatFirstMessageTest extends TestCase
         $this->actingAs($user);
 
         $response = $this->post('/chat', [
-            'firstMessage' => 'This is a very long message that should be truncated for the title'
+            'firstMessage' => 'This is a very long message that should be truncated for the title',
         ]);
 
         $response->assertRedirect();
-        
+
         // User should now have one chat with generated title
         $user->refresh();
         $this->assertCount(1, $user->chats);
-        
+
         $chat = $user->chats->first();
         $this->assertStringStartsWith('This is a very long message that should be', $chat->title);
         $this->assertStringEndsWith('...', $chat->title);
@@ -59,11 +58,11 @@ class ChatFirstMessageTest extends TestCase
         $response = $this->post('/chat');
 
         $response->assertRedirect();
-        
+
         // User should have one blank chat
         $user->refresh();
         $this->assertCount(1, $user->chats);
-        
+
         $chat = $user->chats->first();
         $this->assertNull($chat->title);
         $this->assertCount(0, $chat->messages);
@@ -75,23 +74,23 @@ class ChatFirstMessageTest extends TestCase
         $this->actingAs($user);
 
         $response = $this->post('/chat', [
-            'firstMessage' => 'Hello, save this message'
+            'firstMessage' => 'Hello, save this message',
         ]);
 
         $response->assertRedirect();
-        
+
         // User should have one chat with the message saved
         $user->refresh();
         $this->assertCount(1, $user->chats);
-        
+
         $chat = $user->chats->first();
         $this->assertNotNull($chat);
         $this->assertCount(1, $chat->messages);
-        
+
         $message = $chat->messages->first();
         $this->assertEquals('prompt', $message->type);
         $this->assertEquals('Hello, save this message', $message->content);
-        
+
         // Should redirect with autoStream flash
         $response->assertRedirect("/chat/{$chat->id}");
     }

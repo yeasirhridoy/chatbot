@@ -27,17 +27,13 @@ export default function Conversation({ messages, streamingData, isStreaming, str
     }, [messages.length, streamingData]);
 
     return (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div ref={scrollRef} className="flex-1 overflow-x-hidden overflow-y-auto">
             <div className="mx-auto max-w-3xl space-y-4 p-4">
-                {messages.length === 0 && (
-                    <p className="text-muted-foreground mt-8 text-center">
-                        Type your message below and hit enter to send.
-                    </p>
-                )}
+                {messages.length === 0 && <p className="text-muted-foreground mt-8 text-center">Type your message below and hit enter to send.</p>}
                 {messages.map((message, index) => {
                     // Create a unique key that won't conflict between saved and new messages
                     const key = message.id ? `db-${message.id}` : `local-${index}-${message.content.substring(0, 10)}`;
-                    
+
                     return (
                         <div key={key} className={cn('relative', message.type === 'prompt' && 'flex justify-end')}>
                             <div

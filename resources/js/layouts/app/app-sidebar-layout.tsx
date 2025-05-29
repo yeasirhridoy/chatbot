@@ -11,12 +11,7 @@ interface AppSidebarLayoutProps {
     className?: string;
 }
 
-export default function AppSidebarLayout({
-    children,
-    breadcrumbs = [],
-    currentChatId,
-    className,
-}: PropsWithChildren<AppSidebarLayoutProps>) {
+export default function AppSidebarLayout({ children, breadcrumbs = [], currentChatId, className }: PropsWithChildren<AppSidebarLayoutProps>) {
     return (
         <AppShell variant="sidebar">
             <AppSidebar currentChatId={currentChatId} />

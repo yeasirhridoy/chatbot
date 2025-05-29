@@ -11,7 +11,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ currentChatId }: AppSidebarProps) {
     const { auth } = usePage<{ auth: { user?: User } }>().props;
-    
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -28,16 +28,11 @@ export function AppSidebar({ currentChatId }: AppSidebarProps) {
 
             <SidebarContent>
                 <div className="px-3 py-2">
-                    <ChatList 
-                        currentChatId={currentChatId} 
-                        isAuthenticated={!!auth.user} 
-                    />
+                    <ChatList currentChatId={currentChatId} isAuthenticated={!!auth.user} />
                 </div>
             </SidebarContent>
 
-            <SidebarFooter>
-                {auth.user && <NavUser />}
-            </SidebarFooter>
+            <SidebarFooter>{auth.user && <NavUser />}</SidebarFooter>
         </Sidebar>
     );
 }

@@ -39,10 +39,10 @@ class ChatController extends Controller
         ]);
 
         $title = $request->title;
-        
+
         // If no title but firstMessage provided, use first 50 chars as title
-        if (!$title && $request->firstMessage) {
-            $title = substr($request->firstMessage, 0, 50) . (strlen($request->firstMessage) > 50 ? '...' : '');
+        if (! $title && $request->firstMessage) {
+            $title = substr($request->firstMessage, 0, 50).(strlen($request->firstMessage) > 50 ? '...' : '');
         }
 
         $chat = Auth::user()->chats()->create([
@@ -56,7 +56,7 @@ class ChatController extends Controller
                 'type' => 'prompt',
                 'content' => $request->firstMessage,
             ]);
-            
+
             return redirect()->route('chat.show', $chat)->with('stream', true);
         }
 
@@ -75,16 +75,7 @@ class ChatController extends Controller
             'title' => $request->title,
         ]);
 
-        // Return appropriate response based on request type
-        if ($request->header('X-Inertia')) {
-            // For Inertia requests, redirect back to maintain current page
-            return redirect()->back();
-        }
-
-        return response()->json([
-            'success' => true,
-            'title' => $chat->title,
-        ]);
+        return redirect()->back();
     }
 
     public function destroy(Chat $chat)
@@ -113,7 +104,7 @@ class ChatController extends Controller
             $this->authorize('view', $chat);
         }
 
-        return response()->stream(function () use ($request, $chat) {
+        return response()->eventStream(function () use ($request, $chat) {
             $messages = $request->input('messages', []);
 
             if (empty($messages)) {
@@ -124,7 +115,7 @@ class ChatController extends Controller
             if ($chat) {
                 foreach ($messages as $message) {
                     // Only save if message doesn't have an ID (not from database)
-                    if (!isset($message['id'])) {
+                    if (! isset($message['id'])) {
                         $chat->messages()->create([
                             'type' => $message['type'],
                             'content' => $message['content'],
@@ -147,9 +138,7 @@ class ChatController extends Controller
             if (app()->environment('testing') || ! config('openai.api_key')) {
                 // Mock response for testing or when API key is not set
                 $fullResponse = 'This is a test response.';
-                echo $fullResponse;
-                ob_flush();
-                flush();
+                yield $fullResponse;
             } else {
                 try {
                     $stream = OpenAI::chat()->createStreamed([
@@ -161,16 +150,12 @@ class ChatController extends Controller
                         $chunk = $response->choices[0]->delta->content;
                         if ($chunk !== null) {
                             $fullResponse .= $chunk;
-                            echo $chunk;
-                            ob_flush();
-                            flush();
+                            yield $chunk;
                         }
                     }
                 } catch (\Exception $e) {
                     $fullResponse = 'Error: Unable to generate response.';
-                    echo $fullResponse;
-                    ob_flush();
-                    flush();
+                    yield $fullResponse;
                 }
             }
 
@@ -181,11 +166,7 @@ class ChatController extends Controller
                     'content' => $fullResponse,
                 ]);
             }
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'Content-Type' => 'text/event-stream',
-            'X-Accel-Buffering' => 'no',
-        ]);
+        });
     }
 
     private function generateChatTitle(array $messages): string
