@@ -6,7 +6,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useStream } from '@laravel/stream-react';
 import { Info } from 'lucide-react';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 type Message = {
     id?: number;
@@ -43,7 +43,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     const currentChatId = chat?.id || null;
     const streamUrl = currentChatId ? `/chat/${currentChatId}/stream` : '/chat/stream';
 
-    const { data, send, isStreaming, isFetching } = useStream(streamUrl);
+    const { data, send, isStreaming, isFetching, cancel, id } = useStream(streamUrl);
 
     // Auto-focus input and handle auto-streaming on mount
     useEffect(() => {
@@ -60,32 +60,22 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
         }
     }, [chat?.messages, flash?.stream, send]); // Only run on mount
 
-    // Handle streaming response
+    // Scroll to bottom when streaming
     useEffect(() => {
-        if (!isStreaming && data && data.trim()) {
-            setMessages((currentMessages) => {
-                const hasResponse = currentMessages.some((m) => m.content === data);
-                if (hasResponse) {
-                    return currentMessages;
-                }
-
-                return [
-                    ...currentMessages,
-                    {
-                        type: 'response',
-                        content: data,
-                    },
-                ];
-            });
-
-            // Focus the input after streaming is complete
-            setTimeout(() => {
-                inputRef.current?.focus();
-            }, 100);
+        if (isStreaming) {
+            window.scrollTo(0, document.body.scrollHeight);
         }
     }, [isStreaming, data]);
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    // Focus input when streaming completes
+    useEffect(() => {
+        if (!isStreaming && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [isStreaming]);
+
+
+    const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget;
         const input = form.querySelector('input') as HTMLInputElement;
@@ -93,33 +83,31 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
 
         if (!query) return;
 
-        const newMessage: Message = {
-            type: 'prompt',
-            content: query,
-        };
+        const toAdd: Message[] = [];
 
-        if (!auth.user) {
-            const newMessages = [...messages, newMessage];
-            setMessages(newMessages);
-            send({ messages: newMessages });
-        } else if (!chat) {
-            router.post(
-                '/chat',
-                {
-                    firstMessage: query,
-                },
-                {
-                    preserveState: false,
-                },
-            );
-        } else {
-            const newMessages = [...messages, newMessage];
-            setMessages(newMessages);
-            send({ messages: newMessages });
+        // If there's a completed response from previous streaming, add it first
+        if (data && data.trim()) {
+            toAdd.push({
+                type: 'response',
+                content: data,
+            });
         }
 
+        // Add the new prompt
+        toAdd.push({
+            type: 'prompt',
+            content: query,
+        });
+
+        // Update local state
+        setMessages((prev) => [...prev, ...toAdd]);
+
+        // Send all messages including the new ones
+        send({ messages: [...messages, ...toAdd] });
+
         input.value = '';
-    };
+        inputRef.current?.focus();
+    }, [send, data, messages]);
 
     return (
         <>
@@ -142,7 +130,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                     </div>
                 )}
 
-                <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={undefined} />
+                <Conversation messages={messages} streamingData={data} isStreaming={isStreaming} streamId={id} />
 
                 <div className="bg-background flex-shrink-0 border-t">
                     <div className="mx-auto max-w-3xl p-4">

@@ -50,7 +50,7 @@ export default function Conversation({ messages, streamingData, isStreaming, str
                         </div>
                     );
                 })}
-                {streamingData && isStreaming && (
+                {streamingData && (
                     <div className="relative">
                         <div className="bg-muted inline-block max-w-[80%] rounded-lg p-3">
                             <p className="whitespace-pre-wrap">{streamingData}</p>
