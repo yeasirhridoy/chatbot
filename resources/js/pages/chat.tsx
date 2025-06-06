@@ -1,4 +1,6 @@
 import Conversation from '@/components/conversation';
+import TitleGenerator from '@/components/title-generator';
+import SidebarTitleUpdater from '@/components/sidebar-title-updater';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +40,10 @@ type PageProps = {
 
 function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; auth: PageProps['auth']; flash: PageProps['flash'] }) {
     const [messages, setMessages] = useState<Message[]>(chat?.messages || []);
+    const [currentTitle, setCurrentTitle] = useState<string>(chat?.title || 'Untitled');
+    const [shouldGenerateTitle, setShouldGenerateTitle] = useState<boolean>(false);
+    const [isTitleStreaming, setIsTitleStreaming] = useState<boolean>(false);
+    const [shouldUpdateSidebar, setShouldUpdateSidebar] = useState<boolean>(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const currentChatId = chat?.id || null;
@@ -67,12 +73,31 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
         }
     }, [isStreaming, data]);
 
-    // Focus input when streaming completes
+    // Focus input when streaming completes and trigger title generation
     useEffect(() => {
         if (!isStreaming && inputRef.current) {
             inputRef.current.focus();
+            
+            // Trigger title generation if this is an authenticated user with "Untitled" chat and we have a response
+            if (auth.user && chat && currentTitle === 'Untitled' && data && data.trim()) {
+                console.log('Triggering title generation after first response');
+                setShouldGenerateTitle(true);
+                setShouldUpdateSidebar(true);
+            }
         }
-    }, [isStreaming]);
+    }, [isStreaming, auth.user, chat, currentTitle, data]);
+
+    // Update current title when chat changes
+    useEffect(() => {
+        if (chat?.title) {
+            setCurrentTitle(chat.title);
+        }
+    }, [chat?.title]);
+
+    // Debug: Log when title state changes
+    useEffect(() => {
+        console.log('Title state changed:', { currentTitle, isTitleStreaming });
+    }, [currentTitle, isTitleStreaming]);
 
 
     const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
@@ -111,7 +136,36 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
 
     return (
         <>
-            <Head title={chat?.title || 'Chat'} />
+            <Head title={currentTitle} />
+            {/* Title generator with working EventStream */}
+            {shouldGenerateTitle && auth.user && chat && (
+                <TitleGenerator
+                    chatId={chat.id}
+                    onTitleUpdate={(newTitle, isStreaming = false) => {
+                        console.log('Setting current title to:', newTitle, 'streaming:', isStreaming);
+                        setCurrentTitle(newTitle);
+                        setIsTitleStreaming(isStreaming);
+                        document.title = `${newTitle} - LaraChat`;
+                    }}
+                    onComplete={() => {
+                        console.log('Title generation completed, unmounting component');
+                        setIsTitleStreaming(false);
+                        setShouldGenerateTitle(false);
+                    }}
+                />
+            )}
+            
+            {/* Sidebar title updater - separate EventStream for sidebar */}
+            {shouldUpdateSidebar && auth.user && chat && (
+                <SidebarTitleUpdater
+                    chatId={chat.id}
+                    onComplete={() => {
+                        console.log('Sidebar title update completed');
+                        setShouldUpdateSidebar(false);
+                    }}
+                />
+            )}
+            
             <AppLayout
                 currentChatId={chat?.id}
                 className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
@@ -127,6 +181,20 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                                 </Button>
                             </AlertDescription>
                         </Alert>
+                    </div>
+                )}
+
+                {/* Chat Title Display */}
+                {auth.user && chat && (
+                    <div className="bg-background flex-shrink-0 border-b px-4 py-3">
+                        <div className="mx-auto max-w-3xl">
+                            <h1 className="text-lg font-semibold text-foreground">
+                                {currentTitle}
+                                {isTitleStreaming && (
+                                    <span className="ml-1 animate-pulse">|</span>
+                                )}
+                            </h1>
+                        </div>
                     </div>
                 )}
 

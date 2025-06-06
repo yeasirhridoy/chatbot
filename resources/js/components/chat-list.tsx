@@ -83,6 +83,32 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
         fetchChats();
     }, [fetchChats]);
 
+    // Listen for title updates from EventStream
+    useEffect(() => {
+        const handleTitleUpdate = (event: CustomEvent) => {
+            const { chatId, newTitle } = event.detail;
+            console.log('ChatList received title update:', { chatId, newTitle });
+            
+            // Update local state
+            setChats((prevChats) => 
+                prevChats.map((chat) => 
+                    chat.id === chatId ? { ...chat, title: newTitle } : chat
+                )
+            );
+            
+            // Update cache
+            chatCache = chatCache.map((chat) => 
+                chat.id === chatId ? { ...chat, title: newTitle } : chat
+            );
+        };
+
+        window.addEventListener('chatTitleUpdated', handleTitleUpdate as EventListener);
+        
+        return () => {
+            window.removeEventListener('chatTitleUpdated', handleTitleUpdate as EventListener);
+        };
+    }, []);
+
     // Only refresh when currentChatId changes to a new value (new chat created)
     useEffect(() => {
         if (currentChatId && currentChatId !== lastCurrentChatId.current) {
