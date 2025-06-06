@@ -182,7 +182,7 @@ class ChatController extends Controller
                     'type' => 'response',
                     'content' => $fullResponse,
                 ]);
-                
+
                 // Generate title if this is a new chat with "Untitled" title
                 \Log::info('Checking if should generate title', ['chat_title' => $chat->title]);
                 if ($chat->title === 'Untitled') {
@@ -215,7 +215,7 @@ class ChatController extends Controller
     public function titleStream(Chat $chat)
     {
         $this->authorize('view', $chat);
-        
+
         \Log::info('Title stream requested for chat', ['chat_id' => $chat->id, 'title' => $chat->title]);
 
         return response()->eventStream(function () use ($chat) {
@@ -227,18 +227,18 @@ class ChatController extends Controller
                 );
                 return;
             }
-            
+
             // Generate title immediately when stream is requested
             $this->generateTitleInBackground($chat);
-            
+
             // Wait for title updates and stream them
             $startTime = time();
             $timeout = 30; // 30 second timeout
-            
+
             while (time() - $startTime < $timeout) {
                 // Refresh the chat model to get latest title
                 $chat->refresh();
-                
+
                 // If title has changed from "Untitled", send it
                 if ($chat->title !== 'Untitled') {
                     yield new StreamedEvent(
@@ -247,7 +247,7 @@ class ChatController extends Controller
                     );
                     break;
                 }
-                
+
                 // Wait a bit before checking again
                 usleep(500000); // 0.5 seconds
             }
@@ -258,7 +258,7 @@ class ChatController extends Controller
     {
         // Get the first message
         $firstMessage = $chat->messages()->where('type', 'prompt')->first();
-        
+
         if (!$firstMessage) {
             return;
         }
@@ -269,7 +269,7 @@ class ChatController extends Controller
                 $generatedTitle = 'Chat about: ' . substr($firstMessage->content, 0, 30);
             } else {
                 $response = OpenAI::chat()->create([
-                    'model' => 'gpt-4o-mini',
+                    'model' => 'gpt-4.1-nano',
                     'messages' => [
                         [
                             'role' => 'system',
@@ -285,18 +285,18 @@ class ChatController extends Controller
                 ]);
 
                 $generatedTitle = trim($response->choices[0]->message->content);
-                
+
                 // Ensure title length
                 if (strlen($generatedTitle) > 50) {
                     $generatedTitle = substr($generatedTitle, 0, 47) . '...';
                 }
             }
-            
+
             // Update the chat title
             $chat->update(['title' => $generatedTitle]);
-            
+
             \Log::info('Generated title for chat', ['chat_id' => $chat->id, 'title' => $generatedTitle]);
-            
+
         } catch (\Exception $e) {
             // Fallback title on error
             $fallbackTitle = substr($firstMessage->content, 0, 47) . '...';
