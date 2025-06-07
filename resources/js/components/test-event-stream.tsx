@@ -5,6 +5,7 @@ interface TestEventStreamProps {
     chatId: number;
 }
 
+// DEBUG: Test component for EventStream - remove in production
 export default function TestEventStream({ chatId }: TestEventStreamProps) {
     const [manualMessage, setManualMessage] = useState<string>('');
     const [status, setStatus] = useState<string>('Not started');

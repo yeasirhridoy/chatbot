@@ -10,14 +10,10 @@ export default function SidebarTitleUpdater({ chatId, onComplete }: SidebarTitle
         eventName: "title-update",
         endSignal: "</stream>",
         onMessage: (event) => {
-            console.log('SidebarTitleUpdater received:', event.data);
-            
             try {
                 const parsed = JSON.parse(event.data);
                 
                 if (parsed.title) {
-                    console.log('Broadcasting sidebar title update:', parsed.title);
-                    
                     // Broadcast to any listening components (like ChatList)
                     window.dispatchEvent(new CustomEvent('chatTitleUpdated', { 
                         detail: { chatId, newTitle: parsed.title } 
@@ -28,7 +24,6 @@ export default function SidebarTitleUpdater({ chatId, onComplete }: SidebarTitle
             }
         },
         onComplete: () => {
-            console.log('Sidebar title update complete');
             onComplete();
         },
         onError: (error) => {

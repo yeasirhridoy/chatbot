@@ -28,7 +28,7 @@ class ChatPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return true; // Authenticated users can create chats
     }
 
     /**
@@ -36,7 +36,7 @@ class ChatPolicy
      */
     public function update(User $user, Chat $chat): bool
     {
-        return false;
+        return $user->id === $chat->user_id; // Users can update their own chats
     }
 
     /**
@@ -44,7 +44,7 @@ class ChatPolicy
      */
     public function delete(User $user, Chat $chat): bool
     {
-        return false;
+        return $user->id === $chat->user_id; // Users can delete their own chats
     }
 
     /**

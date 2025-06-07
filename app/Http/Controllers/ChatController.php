@@ -76,7 +76,7 @@ class ChatController extends Controller
 
     public function update(Request $request, Chat $chat)
     {
-        $this->authorize('view', $chat);
+        $this->authorize('update', $chat);
 
         $request->validate([
             'title' => 'required|string|max:255',
@@ -91,7 +91,7 @@ class ChatController extends Controller
 
     public function destroy(Chat $chat)
     {
-        $this->authorize('view', $chat);
+        $this->authorize('delete', $chat);
 
         $chatId = $chat->id;
         $chat->delete();

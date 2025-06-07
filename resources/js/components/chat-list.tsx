@@ -87,7 +87,6 @@ export default function ChatList({ currentChatId, isAuthenticated }: ChatListPro
     useEffect(() => {
         const handleTitleUpdate = (event: CustomEvent) => {
             const { chatId, newTitle } = event.detail;
-            console.log('ChatList received title update:', { chatId, newTitle });
             
             // Update local state
             setChats((prevChats) => 

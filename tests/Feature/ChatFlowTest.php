@@ -31,7 +31,7 @@ class ChatFlowTest extends TestCase
 
         $chat = $user->chats->first();
         $this->assertNotNull($chat);
-        $this->assertNull($chat->title); // Blank chat has no title
+        $this->assertEquals('Untitled', $chat->title); // Blank chat has "Untitled" title
         $this->assertCount(0, $chat->messages); // No messages yet
 
         // Should redirect to the new chat page
@@ -43,13 +43,13 @@ class ChatFlowTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        // Visit home page
+        // Visit home page - authenticated users get redirected to new chat
         $response = $this->get('/');
-        $response->assertStatus(200);
-        $response->assertInertia(fn (Assert $page) => $page
-            ->component('chat')
-            ->where('chat', null)
-        );
+        $response->assertRedirect();
+        
+        // User should now have a chat from the redirect
+        $user->refresh();
+        $this->assertCount(1, $user->chats);
 
         // Simulate typing a message and submitting (this would trigger the frontend logic)
         // In the frontend, this would:

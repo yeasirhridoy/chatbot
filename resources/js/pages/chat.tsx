@@ -80,7 +80,6 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
             
             // Trigger title generation if this is an authenticated user with "Untitled" chat and we have a response
             if (auth.user && chat && currentTitle === 'Untitled' && data && data.trim()) {
-                console.log('Triggering title generation after first response');
                 setShouldGenerateTitle(true);
                 setShouldUpdateSidebar(true);
             }
@@ -94,9 +93,9 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
         }
     }, [chat?.title]);
 
-    // Debug: Log when title state changes
+    // Track title state changes
     useEffect(() => {
-        console.log('Title state changed:', { currentTitle, isTitleStreaming });
+        // Title state tracking
     }, [currentTitle, isTitleStreaming]);
 
 
@@ -142,13 +141,11 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                 <TitleGenerator
                     chatId={chat.id}
                     onTitleUpdate={(newTitle, isStreaming = false) => {
-                        console.log('Setting current title to:', newTitle, 'streaming:', isStreaming);
                         setCurrentTitle(newTitle);
                         setIsTitleStreaming(isStreaming);
                         document.title = `${newTitle} - LaraChat`;
                     }}
                     onComplete={() => {
-                        console.log('Title generation completed, unmounting component');
                         setIsTitleStreaming(false);
                         setShouldGenerateTitle(false);
                     }}
@@ -160,7 +157,6 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                 <SidebarTitleUpdater
                     chatId={chat.id}
                     onComplete={() => {
-                        console.log('Sidebar title update completed');
                         setShouldUpdateSidebar(false);
                     }}
                 />

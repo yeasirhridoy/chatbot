@@ -28,8 +28,9 @@ class ChatAuthenticationFlowTest extends TestCase
     {
         $user = User::factory()->create();
 
+        // Authenticated users get redirected to a new chat from home
         $response = $this->actingAs($user)->get('/');
-        $response->assertStatus(200);
+        $response->assertRedirect();
 
         $response = $this->actingAs($user)->post('/chat');
         $response->assertRedirect(); // Redirects to new chat
