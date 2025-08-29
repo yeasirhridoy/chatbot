@@ -166,20 +166,6 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                 currentChatId={chat?.id}
                 className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
             >
-                {!auth.user && (
-                    <div className="bg-background flex-shrink-0 border-b p-4">
-                        <Alert className="mx-auto max-w-3xl">
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                                You're chatting anonymously. Your conversation won't be saved.
-                                <Button variant="link" className="h-auto p-0 text-sm" onClick={() => router.visit('/login')}>
-                                    Sign in to save your chats
-                                </Button>
-                            </AlertDescription>
-                        </Alert>
-                    </div>
-                )}
-
                 {/* Chat Title Display */}
                 {auth.user && chat && (
                     <div className="bg-background flex-shrink-0 border-b px-4 py-3">
