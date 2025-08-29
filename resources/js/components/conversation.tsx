@@ -16,7 +16,7 @@ interface ConversationProps {
     streamId?: string;
 }
 
-export default function Conversation({ messages, streamingData, isStreaming, streamId }: ConversationProps) {
+export default function Conversation({ messages, streamingData, streamId }: ConversationProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom when messages change or during streaming
@@ -52,7 +52,12 @@ export default function Conversation({ messages, streamingData, isStreaming, str
     return (
         <div ref={scrollRef} className="flex-1 overflow-x-hidden overflow-y-auto">
             <div className="mx-auto max-w-3xl space-y-4 p-4">
-                {messages.length === 0 && <p className="text-muted-foreground mt-8 text-center">Type your message below and hit enter to send.</p>}
+                {messages.length === 0 && (
+                    <>
+                        <h1 className="mt-8 text-center text-2xl">Welcome to Northern University</h1>
+                        <p className="text-muted-foreground text-center">Type your message below and hit enter to send.</p>
+                    </>
+                )}
                 {messages.map((message, index) => {
                     // Create a unique key that won't conflict between saved and new messages
                     const key = message.id ? `db-${message.id}` : `local-${index}-${message.content.substring(0, 10)}`;
