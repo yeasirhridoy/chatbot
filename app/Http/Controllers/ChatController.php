@@ -156,6 +156,7 @@ class ChatController extends Controller
                 try {
                     $stream = OpenAI::chat()->createStreamed([
                         'model' => 'gpt-4.1-nano',
+                        'temperature' => 0,
                         'messages' => $openAIMessages,
                     ]);
 
