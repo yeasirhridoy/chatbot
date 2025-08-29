@@ -14,6 +14,7 @@ return [
 
     'api_key' => env('OPENAI_API_KEY'),
     'organization' => env('OPENAI_ORGANIZATION'),
+    'assistant_id' => env('OPENAI_ASSISTANT_ID'),
 
     /*
     |--------------------------------------------------------------------------
