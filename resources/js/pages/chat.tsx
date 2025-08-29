@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useStream } from '@laravel/stream-react';
 import { Info } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
@@ -49,9 +49,9 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     const currentChatId = chat?.id || null;
     const streamUrl = currentChatId ? `/chat/${currentChatId}/stream` : '/chat/stream';
 
-    const { data, send, isStreaming, isFetching, cancel, id } = useStream(streamUrl);
+    const { data, send, isStreaming, isFetching, id } = useStream(streamUrl);
 
-    // Auto-focus input and handle auto-streaming on mount
+    // Autofocus input and handle auto-streaming on mount
     useEffect(() => {
         inputRef.current?.focus();
 
@@ -77,7 +77,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
     useEffect(() => {
         if (!isStreaming && inputRef.current) {
             inputRef.current.focus();
-            
+
             // Trigger title generation if this is an authenticated user with "Untitled" chat and we have a response
             if (auth.user && chat && currentTitle === 'Untitled' && data && data.trim()) {
                 setShouldGenerateTitle(true);
@@ -151,7 +151,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                     }}
                 />
             )}
-            
+
             {/* Sidebar title updater - separate EventStream for sidebar */}
             {shouldUpdateSidebar && auth.user && chat && (
                 <SidebarTitleUpdater
@@ -161,7 +161,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
                     }}
                 />
             )}
-            
+
             <AppLayout
                 currentChatId={chat?.id}
                 className="flex h-[calc(100vh-theme(spacing.4))] flex-col overflow-hidden md:h-[calc(100vh-theme(spacing.8))]"
