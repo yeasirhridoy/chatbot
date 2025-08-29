@@ -119,7 +119,6 @@ class ChatController extends Controller
             }
 
             $stream = OpenAI::threads()->createAndRunStreamed([
-                'model' => 'gpt-4.1-nano',
                 'assistant_id' => config('openai.assistant_id'),
                 'temperature' => 0,
                 'thread' => [
