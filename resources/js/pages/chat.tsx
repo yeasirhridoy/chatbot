@@ -133,7 +133,7 @@ function ChatWithStream({ chat, auth, flash }: { chat: ChatType | undefined; aut
 
     return (
         <>
-            <Head title={currentTitle} />
+            <Head title='Welcome' />
             {/* Title generator with working EventStream */}
             {shouldGenerateTitle && auth.user && chat && (
                 <TitleGenerator
