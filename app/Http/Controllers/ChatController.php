@@ -109,183 +109,182 @@ class ChatController extends Controller
         }
     }
 
-//    public function stream(Request $request, ?Chat $chat = null)
-//    {
-//        if ($chat) {
-//            $this->authorize('view', $chat);
-//        }
-//
-//        return response()->stream(function () use ($request, $chat) {
-//            $messages = $request->input('messages', []);
-//
-//            if (empty($messages)) {
-//                return;
-//            }
-//
-//            // Only save messages if we have an existing chat (authenticated user with saved chat)
-//            if ($chat) {
-//                foreach ($messages as $message) {
-//                    // Only save if message doesn't have an ID (not from database)
-//                    if (! isset($message['id'])) {
-//                        $chat->messages()->create([
-//                            'type' => $message['type'],
-//                            'content' => $message['content'],
-//                        ]);
-//                    }
-//                }
-//            }
-//
-//            // Prepare messages for OpenAI
-//            $openAIMessages = collect($messages)
-//                ->map(fn ($message) => [
-//                    'role' => $message['type'] === 'prompt' ? 'user' : 'assistant',
-//                    'content' => $message['content'],
-//                ])
-//                ->toArray();
-//
-//            // Stream response from OpenAI
-//            $fullResponse = '';
-//
-//            if (app()->environment('testing') || ! config('openai.api_key')) {
-//                // Mock response for testing or when API key is not set
-//                $fullResponse = 'This is a test response.';
-//                echo $fullResponse;
-//                ob_flush();
-//                flush();
-//            } else {
-//                try {
-//                    $stream = OpenAI::chat()->createStreamed([
-//                        'model' => 'gpt-4.1-nano',
-//                        'temperature' => 0,
-//                        'messages' => $openAIMessages,
-//                    ]);
-//
-//                    foreach ($stream as $response) {
-//                        $chunk = $response->choices[0]->delta->content;
-//                        if ($chunk !== null) {
-//                            $fullResponse .= $chunk;
-//                            echo $chunk;
-//                            ob_flush();
-//                            flush();
-//                        }
-//                    }
-//                } catch (\Exception $e) {
-//                    $fullResponse = 'Error: Unable to generate response.';
-//                    echo $fullResponse;
-//                    ob_flush();
-//                    flush();
-//                }
-//            }
-//
-//            // Save the AI response to database if authenticated
-//            if ($chat && $fullResponse) {
-//                $chat->messages()->create([
-//                    'type' => 'response',
-//                    'content' => $fullResponse,
-//                ]);
-//
-//                // Generate title if this is a new chat with "Untitled" title
-//                \Log::info('Checking if should generate title', ['chat_title' => $chat->title]);
-//                if ($chat->title === 'Untitled') {
-//                    \Log::info('Generating title in background for chat', ['chat_id' => $chat->id]);
-//                    $this->generateTitleInBackground($chat);
-//                } else {
-//                    \Log::info('Not generating title', ['current_title' => $chat->title]);
-//                }
-//            }
-//        }, 200, [
-//            'Cache-Control' => 'no-cache',
-//            'Content-Type' => 'text/event-stream',
-//            'X-Accel-Buffering' => 'no',
-//        ]);
-//    }
-
     public function stream(Request $request, ?Chat $chat = null)
     {
-        if ($chat) {
-            $this->authorize('view', $chat);
-        }
-
-        return response()->stream(function () use ($request, $chat) {
-            $messages = $request->input('messages', []);
-
-            if (empty($messages)) {
-                return;
+        $agent = true;
+        if ($agent) {
+            if ($chat) {
+                $this->authorize('view', $chat);
             }
 
-            // Save user messages if we have a chat
-            if ($chat) {
-                foreach ($messages as $message) {
-                    if (!isset($message['id'])) {
-                        $chat->messages()->create([
-                            'type' => $message['type'],
-                            'content' => $message['content'],
-                        ]);
+            return response()->stream(function () use ($request, $chat) {
+                $messages = $request->input('messages', []);
+
+                if (empty($messages)) {
+                    return;
+                }
+
+                // Save user messages if we have a chat
+                if ($chat) {
+                    foreach ($messages as $message) {
+                        if (!isset($message['id'])) {
+                            $chat->messages()->create([
+                                'type' => $message['type'],
+                                'content' => $message['content'],
+                            ]);
+                        }
                     }
                 }
-            }
 
-            // 1. Create a thread
-            $thread = OpenAI::threads()->create([]);
+                // 1. Create a thread
+                $thread = OpenAI::threads()->create([]);
 
-            // 2. Add messages to the thread
-            foreach ($messages as $message) {
-                OpenAI::threads()->messages()->create($thread->id, [
-                    'role' => $message['type'] === 'prompt' ? 'user' : 'assistant',
-                    'content' => $message['content'],
+                // 2. Add messages to the thread
+                foreach ($messages as $message) {
+                    OpenAI::threads()->messages()->create($thread->id, [
+                        'role' => $message['type'] === 'prompt' ? 'user' : 'assistant',
+                        'content' => $message['content'],
+                    ]);
+                }
+
+                // 3. Run the assistant
+                $run = OpenAI::threads()->runs()->create($thread->id, [
+                    'assistant_id' => config('openai.assistant_id'),
                 ]);
+
+                // 4. Poll until run is complete
+                do {
+                    $status = OpenAI::threads()->runs()->retrieve($thread->id, $run->id);
+                } while ($status->status !== 'completed' && $status->status !== 'failed');
+
+                $fullResponse = '';
+
+                if ($status->status === 'completed') {
+                    // 5. Retrieve messages
+                    $assistantMessages = OpenAI::threads()->messages()->list($thread->id);
+
+                    foreach (array_reverse($assistantMessages->data) as $msg) {
+                        if ($msg->role === 'assistant') {
+                            $text = $msg->content[0]->text->value ?? '';
+                            $fullResponse .= $text;
+                            echo $text;
+                            ob_flush();
+                            flush();
+                        }
+                    }
+                } else {
+                    $fullResponse = 'Error: Assistant failed to generate response.';
+                    echo $fullResponse;
+                    ob_flush();
+                    flush();
+                }
+
+                // 6. Save response to database
+                if ($chat && $fullResponse) {
+                    $chat->messages()->create([
+                        'type' => 'response',
+                        'content' => $fullResponse,
+                    ]);
+
+                    // Generate chat title if needed
+                    if ($chat->title === 'Untitled') {
+                        $this->generateTitleInBackground($chat);
+                    }
+                }
+            }, 200, [
+                'Cache-Control' => 'no-cache',
+                'Content-Type' => 'text/event-stream',
+                'X-Accel-Buffering' => 'no',
+            ]);
+        } else {
+            if ($chat) {
+                $this->authorize('view', $chat);
             }
 
-            // 3. Run the assistant
-            $run = OpenAI::threads()->runs()->create($thread->id, [
-                'assistant_id' => config('openai.assistant_id'),
-            ]);
+            return response()->stream(function () use ($request, $chat) {
+                $messages = $request->input('messages', []);
 
-            // 4. Poll until run is complete
-            do {
-                $status = OpenAI::threads()->runs()->retrieve($thread->id, $run->id);
-                sleep(1);
-            } while ($status->status !== 'completed' && $status->status !== 'failed');
+                if (empty($messages)) {
+                    return;
+                }
 
-            $fullResponse = '';
+                // Only save messages if we have an existing chat (authenticated user with saved chat)
+                if ($chat) {
+                    foreach ($messages as $message) {
+                        // Only save if message doesn't have an ID (not from database)
+                        if (! isset($message['id'])) {
+                            $chat->messages()->create([
+                                'type' => $message['type'],
+                                'content' => $message['content'],
+                            ]);
+                        }
+                    }
+                }
 
-            if ($status->status === 'completed') {
-                // 5. Retrieve messages
-                $assistantMessages = OpenAI::threads()->messages()->list($thread->id);
+                // Prepare messages for OpenAI
+                $openAIMessages = collect($messages)
+                    ->map(fn ($message) => [
+                        'role' => $message['type'] === 'prompt' ? 'user' : 'assistant',
+                        'content' => $message['content'],
+                    ])
+                    ->toArray();
 
-                foreach (array_reverse($assistantMessages->data) as $msg) {
-                    if ($msg->role === 'assistant') {
-                        $text = $msg->content[0]->text->value ?? '';
-                        $fullResponse .= $text;
-                        echo $text;
+                // Stream response from OpenAI
+                $fullResponse = '';
+
+                if (app()->environment('testing') || ! config('openai.api_key')) {
+                    // Mock response for testing or when API key is not set
+                    $fullResponse = 'This is a test response.';
+                    echo $fullResponse;
+                    ob_flush();
+                    flush();
+                } else {
+                    try {
+                        $stream = OpenAI::chat()->createStreamed([
+                            'model' => 'gpt-4.1-nano',
+                            'temperature' => 0,
+                            'messages' => $openAIMessages,
+                        ]);
+
+                        foreach ($stream as $response) {
+                            $chunk = $response->choices[0]->delta->content;
+                            if ($chunk !== null) {
+                                $fullResponse .= $chunk;
+                                echo $chunk;
+                                ob_flush();
+                                flush();
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        $fullResponse = 'Error: Unable to generate response.';
+                        echo $fullResponse;
                         ob_flush();
                         flush();
                     }
                 }
-            } else {
-                $fullResponse = 'Error: Assistant failed to generate response.';
-                echo $fullResponse;
-                ob_flush();
-                flush();
-            }
 
-            // 6. Save response to database
-            if ($chat && $fullResponse) {
-                $chat->messages()->create([
-                    'type' => 'response',
-                    'content' => $fullResponse,
-                ]);
+                // Save the AI response to database if authenticated
+                if ($chat && $fullResponse) {
+                    $chat->messages()->create([
+                        'type' => 'response',
+                        'content' => $fullResponse,
+                    ]);
 
-                // Generate chat title if needed
-                if ($chat->title === 'Untitled') {
-                    $this->generateTitleInBackground($chat);
+                    // Generate title if this is a new chat with "Untitled" title
+                    \Log::info('Checking if should generate title', ['chat_title' => $chat->title]);
+                    if ($chat->title === 'Untitled') {
+                        \Log::info('Generating title in background for chat', ['chat_id' => $chat->id]);
+                        $this->generateTitleInBackground($chat);
+                    } else {
+                        \Log::info('Not generating title', ['current_title' => $chat->title]);
+                    }
                 }
-            }
-        }, 200, [
-            'Cache-Control' => 'no-cache',
-            'Content-Type' => 'text/event-stream',
-            'X-Accel-Buffering' => 'no',
-        ]);
+            }, 200, [
+                'Cache-Control' => 'no-cache',
+                'Content-Type' => 'text/event-stream',
+                'X-Accel-Buffering' => 'no',
+            ]);
+        }
     }
 
     private function generateChatTitle(array $messages): string

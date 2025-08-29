@@ -1,13 +1,11 @@
 import Conversation from '@/components/conversation';
 import TitleGenerator from '@/components/title-generator';
 import SidebarTitleUpdater from '@/components/sidebar-title-updater';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useStream } from '@laravel/stream-react';
-import { Info } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 type Message = {
